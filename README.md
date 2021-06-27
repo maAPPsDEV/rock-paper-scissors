@@ -38,7 +38,7 @@ How many `if` statements do you expect?
 
 In my opinion, only 2 `if`s are enough to compare the hand circle, no matter how many hands.
 
-```
+```solidity
   /**
    * Compare Hands.
    *
@@ -59,9 +59,9 @@ In my opinion, only 2 `if`s are enough to compare the hand circle, no matter how
 
 Inside `payable` function, when you query the balance, the Ether sender sent has been added to it.
 
-```
+```solidity
     /// @dev Bet fee has been included to the host balance already at the point.
-    require(address(this).balance >= MINIMAL_BET_FEE * 2, "LevelOne: Insufficient host fund.");
+    require(address(this).balance >= msg.value * 2, "LevelOne: Insufficient host fund.");
 ```
 
 ### What is "Topic"?, What is the relation with `indexed` keyword?
@@ -74,13 +74,13 @@ EVM uses low-level primitives called logs to map them to high-level Solidity con
 
 Consider Event:
 
-```
+```solidity
   event PersonCreated(uint indexed age, uint height);
 ```
 
 And you fire it the foobar function of MyContract:
 
-```
+```solidity
   function foobar() {
         emit PersonCreated(26, 176);
   }
@@ -98,7 +98,7 @@ Internally, your Ethereum node (Geth / Parity) will index arguments to build on 
 
 Now in the web3 client you want to watch for creation events of all persons that are `age` of 26, you can simply do:
 
-```
+```javascript
 var createdEvent = myContract.PersonCreated({age: 26});
 createdEvent.watch(function(err, result) {
   if (err) {
@@ -135,7 +135,7 @@ The best source of randomness we have in Solidity is the `keccak256` hash functi
 
 We could do something like the following to generate a random number:
 
-```
+```solidity
 // Generate a random number between 1 and 100:
 uint randNonce = 0;
 uint random = uint(keccak256(abi.encodePacked(now, msg.sender, randNonce))) % 100;
@@ -294,6 +294,19 @@ contract Hacker {
   }
 }
 
+```
+
+**See how Hacker guess randNonce**
+
+```javascript
+        // Read storage of the game contract
+        const randNonce = await web3.eth.getStorageAt(
+          game.address, // address of the contract
+          1, // index of slot - uint256 private randNonce = 0;
+        );
+        const result = await hackerContract.attack(game.address, randNonce, { from: _hacker, value: web3.utils.toWei("1", "gwei") });
+        expect(result.receipt.status).to.equal(true);
+        expect(result.receipt.rawLogs[0].topics[0]).to.be.equal(wonEventSignature);
 ```
 
 **Test Hacker**
