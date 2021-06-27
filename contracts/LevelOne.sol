@@ -19,9 +19,9 @@ contract LevelOne is Ownable {
    * @param hostHand - The hand of host
    * @param amount - The amount of Ether used to bet
    */
-  event Won(address player, Hand playerHand, Hand hostHand, uint256 amount);
-  event Draw(address player, Hand playerHand, Hand hostHand, uint256 amount);
-  event Lost(address player, Hand playerHand, Hand hostHand, uint256 amount);
+  event Won(address indexed player, Hand playerHand, Hand hostHand, uint256 amount);
+  event Draw(address indexed player, Hand playerHand, Hand hostHand, uint256 amount);
+  event Lost(address indexed player, Hand playerHand, Hand hostHand, uint256 amount);
 
   /**
    * The nonce used to generate random.
@@ -46,21 +46,24 @@ contract LevelOne is Ownable {
    * If draw, returns just the amount of Ether used to bet.
    */
   function bet(Hand _playerHand) external payable {
-    require(msg.value > MINIMAL_BET_FEE * 2, "LevelOne: Insufficient bet bee.");
-    require(address(this).balance > MINIMAL_BET_FEE * 2, "LevelOne: Insufficient host fund.");
-    Hand hostHand = getHostHand();
+    require(msg.value >= MINIMAL_BET_FEE, "LevelOne: Insufficient bet bee.");
+    /// @dev Bet fee has been included to the host balance already at the point.
+    require(address(this).balance >= MINIMAL_BET_FEE * 2, "LevelOne: Insufficient host fund.");
+    Hand hostHand = getRandomHand();
     int8 result = compareHand(_playerHand, hostHand);
     if (result == 0) {
       // equal
       // Return player's Ether
       returnFund(msg.value);
       emit Draw(msg.sender, _playerHand, hostHand, msg.value);
+      return;
     } else if (result > 0) {
       // player won! 😄
       // Loser host!!!!!! 😫 😫 😫. Return double of player's Ether
       /// @dev safe for overflow, because we compile in v0.8.0
       returnFund(msg.value * 2);
       emit Won(msg.sender, _playerHand, hostHand, msg.value);
+      return;
     }
 
     // host won, keep the Ether 💰
@@ -88,7 +91,7 @@ contract LevelOne is Ownable {
    *
    * @return a different hand every time called.
    */
-  function getHostHand() internal returns (Hand) {
+  function getRandomHand() internal returns (Hand) {
     uint256 rand = randMod(90);
     if (rand < 30) {
       return Hand.rock;

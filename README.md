@@ -19,60 +19,106 @@ On top of the level-1 task above, instead of giving back twice the bet amount wh
 
 If the fomo timer goes to zero, the last bettor that either turned on or extended the timer wins all the amount in the fomo pool, and the fomo timer is turned off.
 
-_Hint:_
-
-1. What is an odometer?
-
 ## What will you learn?
 
-1. Solidity Security Consideration
-2. **Underflow** and **Overflow** in use of unsigned integers
+1. Enum
+2. [Events](https://docs.soliditylang.org/en/v0.8.5/contracts.html#events) and `indexed`, and "topic"??
+3. `payable` function
+4. Random Number
+5. `receive` function
+6. **Underflow** and **Overflow**
+7. truffle test
 
 ## What is the most difficult challenge?
 
-**You won't get success to attack if the target contract has been complied in Solidity 0.8.0 or uppper** 🤔
+### How can you simply code hand to hand rock-paper-scissors comparison result?
 
-> [**Solidity v0.8.0 Breaking Changes**](https://docs.soliditylang.org/en/v0.8.5/080-breaking-changes.html?highlight=underflow#silent-changes-of-the-semantics)
->
-> Arithmetic operations revert on **underflow** and **overflow**. You can use `unchecked { ... }` to use the previous wrapping behaviour.
->
-> Checks for overflow are very common, so we made them the default to increase readability of code, even if it comes at a slight increase of gas costs.
+How many `if` statements do you expect?
 
-I had tried to do everything in Solidity 0.8.5 at first time, but it didn't work, as it reverted transactions everytime it met underflow.
-
-Finally, I found that Solidity included those checks by defaults while using sliencely more gas.
-
-So, don't you need to use [`SafeMath`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol)?
-
-## Source Code
-
-⚠️This contract contains a bug or risk. Do not use on mainnet!
-
-```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.6.0;
-
-contract Token {
-  mapping(address => uint256) balances;
-  uint256 public totalSupply;
-
-  constructor(uint256 _initialSupply) public {
-    balances[msg.sender] = totalSupply = _initialSupply;
-  }
-
-  function transfer(address _to, uint256 _value) public returns (bool) {
-    require(balances[msg.sender] - _value >= 0);
-    balances[msg.sender] -= _value;
-    balances[_to] += _value;
-    return true;
-  }
-
-  function balanceOf(address _owner) public view returns (uint256 balance) {
-    return balances[_owner];
-  }
-}
+In my opinion, only 2 `if`s are enough to compare the hand circle, no matter how many hands.
 
 ```
+  /**
+   * Compare Hands.
+   *
+   * @param _a - The one side
+   * @param _b - The another side
+   * @return The comparison result. 0: equal, 1: _a wins, -1: _b wins
+   */
+  function compareHand(Hand _a, Hand _b) internal pure returns (int8) {
+    uint8 a = uint8(_a);
+    uint8 b = uint8(_b);
+    if (a == b) return 0;
+    if ((a + 1) % 3 == b) return -1;
+    return 1;
+  }
+```
+
+### What is the balance when you query it inside `payable` function?
+
+Inside `payable` function, when you query the balance, the Ether sender sent has been added to it.
+
+```
+    /// @dev Bet fee has been included to the host balance already at the point.
+    require(address(this).balance >= MINIMAL_BET_FEE * 2, "LevelOne: Insufficient host fund.");
+```
+
+### What is "Topic"?, What is the relation with `indexed` keyword?
+
+Topics are indexed parameters to an event.
+
+`topic[0]` always refers to the hash of the hash of the event itself, and can have up to 3 indexed arguments, which will each be reflected in the topics.
+
+EVM uses low-level primitives called logs to map them to high-level Solidity construct called Event. Logs may contain different topics that are indexed arguments.
+
+Consider Event:
+
+```
+  event PersonCreated(uint indexed age, uint height);
+```
+
+And you fire it the foobar function of MyContract:
+
+```
+  function foobar() {
+        emit PersonCreated(26, 176);
+  }
+```
+
+This will create a low-level EVM log entry with topics
+
+- 0x6be15e8568869b1e100750dd5079151b32637268ec08d199b318b793181b8a7d (Keccak-256 hash of `PersonCreated(uint256,uint256)`)
+
+- 0x36383cc9cfbf1dc87c78c2529ae2fcd4e3fc4e575e154b357ae3a8b2739113cf (Keccak-256 hash of `age`), value 26
+
+You'll notice that height will not be a topic, but it will be included in the data section of the event.
+
+Internally, your Ethereum node (Geth / Parity) will index arguments to build on indexable search indexes, so that you can easily do look ups by value later. Because creating indexes takes additional disk space, indexed parameters in events have additional gas cost. However, indexed are required to any meaningful look up in scale of events by value later.
+
+Now in the web3 client you want to watch for creation events of all persons that are `age` of 26, you can simply do:
+
+```
+var createdEvent = myContract.PersonCreated({age: 26});
+createdEvent.watch(function(err, result) {
+  if (err) {
+    console.log(err)
+    return;
+  }
+  console.log("Found ", result);
+})
+```
+
+Or you could filter all past events in similar fashion.
+
+More information here
+
+- http://solidity.readthedocs.io/en/develop/miscellaneous.html?highlight=topic#modifiers
+
+- http://solidity.readthedocs.io/en/develop/contracts.html?highlight=topic#events
+
+- https://media.consensys.net/technical-introduction-to-events-and-logs-in-ethereum-a074d65dd61e#.7w96id6rs
+
+- https://emn178.github.io/online-tools/keccak_256.html
 
 ## Security Considerations - Random Numbers
 
@@ -149,8 +195,6 @@ truffle develop
 test
 ```
 
-You should take ownership of the target contract successfully.
-
 ```
 truffle(develop)> test
 Using network 'develop'.
@@ -162,10 +206,23 @@ Compiling your contracts...
 
 
 
-  Contract: Hacker
-    √ should steal countless of tokens (377ms)
+  Contract: LevelOne
+    fund
+      √ should revert when player send insufficent fee (904ms)
+      √ should revert when host has insufficient fund (214ms)
+    game
+      √ should work in fair (361ms)
+      √ should work in fair (337ms)
+      √ should work in fair (387ms)
+      √ should work in fair (341ms)
+      √ should work in fair (402ms)
+      √ should work in fair (274ms)
+      √ should work in fair (395ms)
+      √ should work in fair (352ms)
+      √ should work in fair (449ms)
+      √ should work in fair (385ms)
 
 
-  1 passing (440ms)
+  12 passing (8s)
 
 ```
