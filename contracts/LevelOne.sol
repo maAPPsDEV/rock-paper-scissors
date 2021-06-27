@@ -48,7 +48,7 @@ contract LevelOne is Ownable {
   function bet(Hand _playerHand) external payable {
     require(msg.value >= MINIMAL_BET_FEE, "LevelOne: Insufficient bet bee.");
     /// @dev Bet fee has been included to the host balance already at the point.
-    require(address(this).balance >= MINIMAL_BET_FEE * 2, "LevelOne: Insufficient host fund.");
+    require(address(this).balance >= msg.value * 2, "LevelOne: Insufficient host fund.");
     Hand hostHand = getRandomHand();
     int8 result = compareHand(_playerHand, hostHand);
     if (result == 0) {
@@ -105,7 +105,7 @@ contract LevelOne is Ownable {
    * Generate random number between 0 to _modulus.
    * Not secure! 😞
    *
-   * @param _modulus - The max - 1 of the random number range.
+   * @param _modulus - The max - 1 of the random number range
    */
   function randMod(uint256 _modulus) internal returns (uint256) {
     return uint256(keccak256(abi.encodePacked(block.timestamp, msg.sender, ++randNonce))) % _modulus;
@@ -114,7 +114,7 @@ contract LevelOne is Ownable {
   /**
    * Return Ether to player.
    *
-   * @param _amount - The amount of Ether to return depends on the match result.
+   * @param _amount - The amount of Ether to return depends on the match result
    */
   function returnFund(uint256 _amount) private {
     payable(msg.sender).transfer(_amount);

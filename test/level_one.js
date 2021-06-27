@@ -14,7 +14,7 @@ const Hand = {
   rock: 0,
   paper: 1,
   scissors: 2,
-}
+};
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
@@ -37,7 +37,6 @@ function compareHand(a, b) {
 }
 
 contract("LevelOne", function (/* accounts */) {
-
   let playerHand;
   let game;
 
@@ -49,11 +48,11 @@ contract("LevelOne", function (/* accounts */) {
 
   context("fund", function () {
     it("should revert when player send insufficent fee", async function () {
-      await utils.shouldThrow(game.bet(playerHand, {value: web3.utils.toWei("1000", "wei")}));
+      await utils.shouldThrow(game.bet(playerHand, { value: web3.utils.toWei("1000", "wei") }));
     });
 
     it("should revert when host has insufficient fund", async function () {
-      await utils.shouldThrow(game.bet(playerHand, {value: web3.utils.toWei("1", "gwei")}));
+      await utils.shouldThrow(game.bet(playerHand, { value: web3.utils.toWei("1", "gwei") }));
     });
   });
 
@@ -61,7 +60,7 @@ contract("LevelOne", function (/* accounts */) {
     for (i = 0; i < 10; i++) {
       it("should work in fair", async function () {
         await game.send(web3.utils.toWei("1", "gwei"));
-        const result = await game.bet(playerHand, {value: web3.utils.toWei("1", "gwei")});
+        const result = await game.bet(playerHand, { value: web3.utils.toWei("1", "gwei") });
         expect(result.receipt.status).to.be.equal(true);
         expect(result.logs[0].args.playerHand.toNumber()).to.be.equal(playerHand);
         const hostHand = result.receipt.logs[0].args.hostHand.toNumber();
