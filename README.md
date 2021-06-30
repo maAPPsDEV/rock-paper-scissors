@@ -39,20 +39,21 @@ How many `if` statements do you expect?
 In my opinion, only 2 `if`s are enough to compare the hand circle, no matter how many hands.
 
 ```solidity
-  /**
-   * Compare Hands.
-   *
-   * @param _a - The one side
-   * @param _b - The another side
-   * @return The comparison result. 0: equal, 1: _a wins, -1: _b wins
-   */
-  function compareHand(Hand _a, Hand _b) internal pure returns (int8) {
-    uint8 a = uint8(_a);
-    uint8 b = uint8(_b);
-    if (a == b) return 0;
-    if ((a + 1) % 3 == b) return -1;
-    return 1;
-  }
+/**
+ * Compare Hands.
+ *
+ * @param _a - The one side
+ * @param _b - The another side
+ * @return The comparison result. 0: equal, 1: _a wins, -1: _b wins
+ */
+function compareHand(Hand _a, Hand _b) internal pure returns (int8) {
+  uint8 a = uint8(_a);
+  uint8 b = uint8(_b);
+  if (a == b) return 0;
+  if ((a + 1) % 3 == b) return -1;
+  return 1;
+}
+
 ```
 
 ### What is the balance when you query it inside `payable` function?
@@ -81,9 +82,10 @@ Consider Event:
 And you fire it the foobar function of MyContract:
 
 ```solidity
-  function foobar() {
-        emit PersonCreated(26, 176);
-  }
+function foobar() {
+  emit PersonCreated(26, 176);
+}
+
 ```
 
 This will create a low-level EVM log entry with topics
@@ -99,14 +101,14 @@ Internally, your Ethereum node (Geth / Parity) will index arguments to build on 
 Now in the web3 client you want to watch for creation events of all persons that are `age` of 26, you can simply do:
 
 ```javascript
-var createdEvent = myContract.PersonCreated({age: 26});
-createdEvent.watch(function(err, result) {
+var createdEvent = myContract.PersonCreated({ age: 26 });
+createdEvent.watch(function (err, result) {
   if (err) {
-    console.log(err)
+    console.log(err);
     return;
   }
   console.log("Found ", result);
-})
+});
 ```
 
 Or you could filter all past events in similar fashion.
@@ -299,14 +301,17 @@ contract Hacker {
 **See how Hacker guess randNonce**
 
 ```javascript
-        // Read storage of the game contract
-        const randNonce = await web3.eth.getStorageAt(
-          game.address, // address of the contract
-          1, // index of slot - uint256 private randNonce = 0;
-        );
-        const result = await hackerContract.attack(game.address, randNonce, { from: _hacker, value: web3.utils.toWei("1", "gwei") });
-        expect(result.receipt.status).to.equal(true);
-        expect(result.receipt.rawLogs[0].topics[0]).to.be.equal(wonEventSignature);
+// Read storage of the game contract
+const randNonce = await web3.eth.getStorageAt(
+  game.address, // address of the contract
+  1 // index of slot - uint256 private randNonce = 0;
+);
+const result = await hackerContract.attack(game.address, randNonce, {
+  from: _hacker,
+  value: web3.utils.toWei("1", "gwei"),
+});
+expect(result.receipt.status).to.equal(true);
+expect(result.receipt.rawLogs[0].topics[0]).to.be.equal(wonEventSignature);
 ```
 
 **Test Hacker**
@@ -390,23 +395,42 @@ Compiling your contracts...
 
 
 
+  Contract: Hacker
+    should win always
+      √ should win (197ms)
+      √ should win (249ms)
+      √ should win (250ms)
+      √ should win (188ms)
+      √ should win (240ms)
+      √ should win (187ms)
+      √ should win (240ms)
+      √ should win (258ms)
+      √ should win (182ms)
+      √ should win (209ms)
+
   Contract: LevelOne
     fund
-      √ should revert when player send insufficent fee (904ms)
-      √ should revert when host has insufficient fund (214ms)
+      √ should revert when player send insufficent fee (557ms)
+      √ should revert when host has insufficient fund (267ms)
     game
-      √ should work in fair (361ms)
-      √ should work in fair (337ms)
-      √ should work in fair (387ms)
-      √ should work in fair (341ms)
-      √ should work in fair (402ms)
-      √ should work in fair (274ms)
-      √ should work in fair (395ms)
-      √ should work in fair (352ms)
-      √ should work in fair (449ms)
-      √ should work in fair (385ms)
+      √ should work in fair (429ms)
+      √ should work in fair (432ms)
+      √ should work in fair (559ms)
+      √ should work in fair (529ms)
+      √ should work in fair (443ms)
+      √ should work in fair (550ms)
+      √ should work in fair (443ms)
+      √ should work in fair (521ms)
+      √ should work in fair (426ms)
+      √ should work in fair (533ms)
+
+  Contract: LevelTwo
+    √ should start fomo timer (635ms)
+    √ should deposit fomo (712ms)
+    √ should extend fomo timer (1244ms)
+    √ should withdraw fomo to winner (943ms)
 
 
-  12 passing (8s)
+  26 passing (19s)
 
 ```

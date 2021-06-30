@@ -3,38 +3,13 @@ const utils = require("./helpers/utils");
 const { expect } = require("chai");
 const { BN } = require("@openzeppelin/test-helpers");
 const { web3 } = require("@openzeppelin/test-helpers/src/setup");
+const { getRandomHand, compareHand } = require("./helpers/game_helper");
 
 /*
  * uncomment accounts to access the test accounts made available by the
  * Ethereum client
  * See docs: https://www.trufflesuite.com/docs/truffle/testing/writing-tests-in-javascript
  */
-
-const Hand = {
-  rock: 0,
-  paper: 1,
-  scissors: 2,
-};
-
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
-
-function getRandomHand() {
-  const rand = getRandomInt(90);
-  if (rand < 30) {
-    return Hand.rock;
-  } else if (rand < 60) {
-    return Hand.paper;
-  }
-  return Hand.scissors;
-}
-
-function compareHand(a, b) {
-  if (a === b) return 0;
-  if ((a + 1) % 3 === b) return -1;
-  return 1;
-}
 
 contract("LevelOne", function (/* accounts */) {
   let playerHand;

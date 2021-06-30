@@ -2,6 +2,7 @@ const Hacker = artifacts.require("Hacker");
 const LevelOne = artifacts.require("LevelOne");
 const { web3 } = require("@openzeppelin/test-helpers/src/setup");
 const { expect } = require("chai");
+const { wonEventSignature } = require("./helpers/game_helper");
 
 /*
  * uncomment accounts to access the test accounts made available by the
@@ -9,7 +10,6 @@ const { expect } = require("chai");
  * See docs: https://www.trufflesuite.com/docs/truffle/testing/writing-tests-in-javascript
  */
 contract("Hacker", function ([_owner, _hacker]) {
-  const wonEventSignature = web3.utils.keccak256("Won(address,uint8,uint8,uint256)");
   let game, hackerContract;
 
   beforeEach(async function () {
