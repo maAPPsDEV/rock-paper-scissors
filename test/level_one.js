@@ -1,7 +1,6 @@
 const LevelOne = artifacts.require("LevelOne");
-const utils = require("./helpers/utils");
 const { expect } = require("chai");
-const { BN } = require("@openzeppelin/test-helpers");
+const { BN, expectRevert } = require("@openzeppelin/test-helpers");
 const { web3 } = require("@openzeppelin/test-helpers/src/setup");
 const { getRandomHand, compareHand } = require("./helpers/game_helper");
 
@@ -23,11 +22,11 @@ contract("LevelOne", function (/* accounts */) {
 
   context("fund", function () {
     it("should revert when player send insufficent fee", async function () {
-      await utils.shouldThrow(game.bet(playerHand, { value: web3.utils.toWei("1000", "wei") }));
+      expectRevert(game.bet(playerHand, { value: web3.utils.toWei("1000", "wei") }), "LevelOne: Insufficient bet bee.");
     });
 
     it("should revert when host has insufficient fund", async function () {
-      await utils.shouldThrow(game.bet(playerHand, { value: web3.utils.toWei("1", "gwei") }));
+      expectRevert(game.bet(playerHand, { value: web3.utils.toWei("1", "gwei") }), "LevelOne: Insufficient host fund.");
     });
   });
 

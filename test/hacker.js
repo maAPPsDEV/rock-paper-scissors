@@ -1,6 +1,6 @@
 const Hacker = artifacts.require("Hacker");
 const LevelOne = artifacts.require("LevelOne");
-const { web3 } = require("@openzeppelin/test-helpers/src/setup");
+const { expectEvent } = require("@openzeppelin/test-helpers");
 const { expect } = require("chai");
 const { wonEventSignature } = require("./helpers/game_helper");
 
@@ -28,7 +28,7 @@ contract("Hacker", function ([_owner, _hacker]) {
         );
         const result = await hackerContract.attack(game.address, randNonce, { from: _hacker, value: web3.utils.toWei("1", "gwei") });
         expect(result.receipt.status).to.equal(true);
-        expect(result.receipt.rawLogs[0].topics[0]).to.be.equal(wonEventSignature);
+        expectEvent.inTransaction(result.tx, game, "Won");
       });
     }
   });
